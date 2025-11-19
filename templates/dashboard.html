@@ -1,0 +1,38 @@
+<!-- Ajouter cette section après le statut des connexions -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Statistiques</h5>
+            </div>
+            <div class="card-body">
+                {% if stats %}
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Bytes In:</strong> {{ stats.get('bytes_in', 0) }}<br>
+                            <strong>Bytes Out:</strong> {{ stats.get('bytes_out', 0) }}<br>
+                        </div>
+                        <div class="col-6">
+                            <strong>Packets In:</strong> {{ stats.get('packets_in', 0) }}<br>
+                            <strong>Packets Out:</strong> {{ stats.get('packets_out', 0) }}<br>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Aucune statistique disponible</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Actions système</h5>
+            </div>
+            <div class="card-body">
+                <a href="{{ url_for('reload_secrets') }}" class="btn btn-warning">
+                    Recharger les secrets
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

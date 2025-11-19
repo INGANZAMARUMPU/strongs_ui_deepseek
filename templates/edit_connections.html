@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifier' if connection else 'Créer' }} Connexion - StrongSwan Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">{{ 'Modifier' if connection else 'Créer' }} une connexion IPsec</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Nom de la connexion</label>
+                                <input type="text" class="form-control" id="name" name="name" 
+                                       value="{{ connection.name if connection else '' }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="auto" class="form-label">Auto</label>
+                                <select class="form-select" id="auto" name="auto">
+                                    <option value="start" {{ 'selected' if connection and connection.config.get('auto') == 'start' else '' }}>start</option>
+                                    <option value="add" {{ 'selected' if connection and connection.config.get('auto') == 'add' else '' }}>add</option>
+                                    <option value="ignore" {{ 'selected' if connection and connection.config.get('auto') == 'ignore' else '' }}>ignore</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4">Configuration Left</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="left" class="form-label">Left (IP ou %any)</label>
+                                <input type="text" class="form-control" id="left" name="left" 
+                                       value="{{ connection.config.get('left', '') if connection else '' }}" 
+                                       placeholder="%any ou IP spécifique">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="leftsubnet" class="form-label">Left Subnet</label>
+                                <input type="text" class="form-control" id="leftsubnet" name="leftsubnet" 
+                                       value="{{ connection.config.get('leftsubnet', '') if connection else '' }}" 
+                                       placeholder="192.168.1.0/24">
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4">Configuration Right</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="right" class="form-label">Right (IP ou %any)</label>
+                                <input type="text" class="form-control" id="right" name="right" 
+                                       value="{{ connection.config.get('right', '') if connection else '' }}" 
+                                       placeholder="%any ou IP spécifique">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="rightsubnet" class="form-label">Right Subnet</label>
+                                <input type="text" class="form-control" id="rightsubnet" name="rightsubnet" 
+                                       value="{{ connection.config.get('rightsubnet', '') if connection else '' }}" 
+                                       placeholder="192.168.2.0/24">
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4">Paramètres de chiffrement</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="keyexchange" class="form-label">Key Exchange</label>
+                                <select class="form-select" id="keyexchange" name="keyexchange">
+                                    <option value="ikev2" {{ 'selected' if connection and connection.config.get('keyexchange') == 'ikev2' else '' }}>ikev2</option>
+                                    <option value="ikev1" {{ 'selected' if connection and connection.config.get('keyexchange') == 'ikev1' else '' }}>ikev1</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="ike" class="form-label">IKE</label>
+                                <input type="text" class="form-control" id="ike" name="ike" 
+                                       value="{{ connection.config.get('ike', 'aes256-sha2_256-modp2048') if connection else 'aes256-sha2_256-modp2048' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="esp" class="form-label">ESP</label>
+                                <input type="text" class="form-control" id="esp" name="esp" 
+                                       value="{{ connection.config.get('esp', 'aes256-sha2_256') if connection else 'aes256-sha2_256' }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            {{ 'Modifier' if connection else 'Créer' }} la connexion
+                        </button>
+                        <a href="{{ url_for('connections') }}" class="btn btn-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

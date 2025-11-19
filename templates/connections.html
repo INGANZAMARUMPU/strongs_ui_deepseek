@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des connexions - StrongSwan Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Gestion des connexions IPsec</h1>
+    <a href="{{ url_for('create_connection') }}" class="btn btn-primary">Nouvelle connexion</a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Liste des connexions</h5>
+    </div>
+    <div class="card-body">
+        {% if connections %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Left</th>
+                            <th>Left Subnet</th>
+                            <th>Right</th>
+                            <th>Right Subnet</th>
+                            <th>IKE</th>
+                            <th>ESP</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for conn in connections %}
+                            <tr>
+                                <td><strong>{{ conn.name }}</strong></td>
+                                <td>{{ conn.config.get('left', 'N/A') }}</td>
+                                <td>{{ conn.config.get('leftsubnet', 'N/A') }}</td>
+                                <td>{{ conn.config.get('right', 'N/A') }}</td>
+                                <td>{{ conn.config.get('rightsubnet', 'N/A') }}</td>
+                                <td>{{ conn.config.get('ike', 'N/A') }}</td>
+                                <td>{{ conn.config.get('esp', 'N/A') }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('edit_connection', name=conn.name) }}" 
+                                           class="btn btn-outline-primary">Modifier</a>
+                                        <a href="{{ url_for('delete_connection', name=conn.name) }}" 
+                                           class="btn btn-outline-danger"
+                                           onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette connexion?')">Supprimer</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <p class="text-muted">Aucune connexion configurée</p>
+                <a href="{{ url_for('create_connection') }}" class="btn btn-primary">Créer la première connexion</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
