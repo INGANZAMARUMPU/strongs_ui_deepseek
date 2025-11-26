@@ -4,90 +4,90 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Tableau de bord</h1>
+    <h1><i class="fas fa-tachometer-alt"></i> Tableau de bord</h1>
     <div>
-        <a href="{{ url_for('connections') }}" class="btn btn-primary me-2">Gérer les connexions</a>
-        <a href="{{ url_for('reload_secrets') }}" class="btn btn-warning">Recharger les secrets</a>
+        <a href="{{ url_for('connections') }}" class="btn btn-primary me-2"><i class="fas fa-list"></i> Connexions</a>
+        <a href="{{ url_for('reload_secrets') }}" class="btn btn-warning"><i class="fas fa-sync"></i> Secrets</a>
     </div>
 </div>
 
 <div class="row">
-    <div class="col-12">
+    <div class="col-md-8">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Statut des connexions</h5>
-                <button id="refresh-status" class="btn btn-sm btn-outline-secondary">Actualiser</button>
+                <h5 class="card-title mb-0"><i class="fas fa-plug"></i> Connexions</h5>
+                <button id="refresh-status" class="btn btn-sm btn-outline-secondary"><i class="fas fa-redo"></i></button>
             </div>
             <div class="card-body">
                 <div id="status-container">
-                    {% for conn_name, conn_status in status.items() %}
+                    {% for conn_name, conn_info in status.items() %}
                         {% set connection_info = connections | selectattr("name", "equalto", conn_name) | first %}
                         <div class="connection-status mb-3 p-3 border rounded">
                             <div class="row">
                                 <div class="col-md-8">
-                                    <h6 class="mb-2">{{ conn_name }}</h6>
-                                    {% if connection_info %}
-                                        <div class="connection-details small text-muted">
-                                            <div><strong>Local:</strong> {{ connection_info.config.local_addrs.0 if connection_info.config.local_addrs else 'N/A' }}</div>
-                                            <div><strong>Remote:</strong> {{ connection_info.config.remote_addrs.0 if connection_info.config.remote_addrs else 'N/A' }}</div>
-                                            {% if connection_info.config.children and connection_info.config.children.0 %}
-                                                <div><strong>Local TS:</strong> {{ connection_info.config.children.0.local_ts.0 if connection_info.config.children.0.local_ts else 'N/A' }}</div>
-                                                <div><strong>Remote TS:</strong> {{ connection_info.config.children.0.remote_ts.0 if connection_info.config.children.0.remote_ts else 'N/A' }}</div>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
+                                    <h6 class="mb-2"><i class="fas fa-link"></i> {{ conn_name }}</h6>
+                                    <div class="connection-details small">
+                                        <div><i class="fas fa-laptop"></i> <strong>Public:</strong> {{ connection_info.config.local_addrs.0 if connection_info and connection_info.config.local_addrs else 'N/A' }}</div>
+                                        <div><i class="fas fa-server"></i> <strong>Public:</strong> {{ connection_info.config.remote_addrs.0 if connection_info and connection_info.config.remote_addrs else 'N/A' }}</div>
+                                        {% if connection_info and connection_info.config.children and connection_info.config.children[conn_name] %}
+                                            <div><i class="fas fa-network-wired"></i> <strong>Privé Local:</strong> {{ connection_info.config.children[conn_name]['local-ts'].0 if connection_info.config.children[conn_name]['local-ts'] else 'N/A' }}</div>
+                                            <div><i class="fas fa-globe"></i> <strong>Privé Remote:</strong> {{ connection_info.config.children[conn_name]['remote-ts'].0 if connection_info.config.children[conn_name]['remote-ts'] else 'N/A' }}</div>
+                                        {% endif %}
+                                        {% if conn_info.established_time and conn_info.established_time > 0 %}
+                                            <div><i class="fas fa-clock"></i> <strong>Time:</strong> {{ conn_info.established_time }}s</div>
+                                        {% endif %}
+                                        {% if conn_info.bytes_in > 0 or conn_info.bytes_out > 0 %}
+                                            <div><i class="fas fa-chart-bar"></i> <strong>Data:</strong> ↓{{ conn_info.bytes_in }} / ↑{{ conn_info.bytes_out }}</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
                                 <div class="col-md-4 text-end">
-                                    <span class="badge {% if 'established' in conn_status %}bg-success{% else %}bg-warning{% endif %} mb-2">
-                                        {{ conn_status }}
+                                    <span class="badge {% if conn_info.state == 'established' %}bg-success{% else %}bg-warning{% endif %} mb-2">
+                                        <i class="fas fa-{% if conn_info.state == 'established' %}check{% else %}times{% endif %}"></i> {{ conn_info.state }}
                                     </span>
-                                    <div>
-                                        {% if 'established' not in conn_status %}
-                                            <a href="{{ url_for('start_connection', name=conn_name) }}" class="btn btn-sm btn-success">Démarrer</a>
+                                    <div class="mt-2">
+                                        {% if conn_info.state == 'established' %}
+                                            <a href="{{ url_for('stop_connection', name=conn_name) }}" class="btn btn-sm btn-danger"><i class="fas fa-stop"></i> Arrêter</a>
                                         {% else %}
-                                            <a href="{{ url_for('stop_connection', name=conn_name) }}" class="btn btn-sm btn-danger">Arrêter</a>
+                                            <a href="{{ url_for('start_connection', name=conn_name) }}" class="btn btn-sm btn-success"><i class="fas fa-play"></i> Démarrer</a>
                                         {% endif %}
-                                        <a href="{{ url_for('edit_connection', name=conn_name) }}" class="btn btn-sm btn-outline-primary">Modifier</a>
+                                        <a href="{{ url_for('edit_connection', name=conn_name) }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     {% else %}
-                        <p class="text-muted text-center py-4">Aucune connexion configurée</p>
+                        <p class="text-muted text-center py-4"><i class="fas fa-inbox fa-2x"></i><br>Aucune connexion</p>
                     {% endfor %}
                 </div>
             </div>
         </div>
     </div>
-</div>
-
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card">
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
             <div class="card-header">
-                <h5 class="card-title mb-0">Résumé</h5>
+                <h5 class="card-title mb-0"><i class="fas fa-chart-bar"></i> Résumé</h5>
             </div>
             <div class="card-body">
-                <p><strong>Connexions totales:</strong> {{ connections | length }}</p>
-                <p><strong>Connexions établies:</strong> {{ status.values() | select("equalto", "established") | list | length }}</p>
-                <p><strong>Utilisateur:</strong> {{ session.username }}</p>
+                {% set established_count = status.values() | selectattr("state", "equalto", "established") | list | length %}
+                <p><i class="fas fa-link text-primary"></i> <strong>Total:</strong> {{ status | length }}</p>
+                <p><i class="fas fa-check text-success"></i> <strong>Établies:</strong> {{ established_count }}</p>
+                <p><i class="fas fa-times text-warning"></i> <strong>Non établies:</strong> {{ status | length - established_count }}</p>
+                <p><i class="fas fa-user text-info"></i> <strong>Utilisateur:</strong> {{ session.username }}</p>
             </div>
         </div>
-    </div>
-    <div class="col-md-6">
+        
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">Statistiques</h5>
+                <h5 class="card-title mb-0"><i class="fas fa-chart-line"></i> Statistiques Globales</h5>
             </div>
             <div class="card-body">
-                {% if stats %}
-                    <p><strong>Bytes In:</strong> {{ stats.bytes_in | default(0) }}</p>
-                    <p><strong>Bytes Out:</strong> {{ stats.bytes_out | default(0) }}</p>
-                    <p><strong>Packets In:</strong> {{ stats.packets_in | default(0) }}</p>
-                    <p><strong>Packets Out:</strong> {{ stats.packets_out | default(0) }}</p>
-                {% else %}
-                    <p class="text-muted">Aucune statistique</p>
-                {% endif %}
+                {% set total_bytes_in = status.values() | sum(attribute="bytes_in") %}
+                {% set total_bytes_out = status.values() | sum(attribute="bytes_out") %}
+                <p><i class="fas fa-download text-primary"></i> <strong>Bytes In:</strong> {{ total_bytes_in }}</p>
+                <p><i class="fas fa-upload text-success"></i> <strong>Bytes Out:</strong> {{ total_bytes_out }}</p>
+                <p><i class="fas fa-exchange-alt text-info"></i> <strong>Total Data:</strong> {{ total_bytes_in + total_bytes_out }}</p>
             </div>
         </div>
     </div>

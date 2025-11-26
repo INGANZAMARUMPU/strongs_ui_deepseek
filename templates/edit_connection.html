@@ -18,7 +18,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="name" class="form-label">Nom de la connexion *</label>
+                                <label for="name" class="form-label">Nom *</label>
                                 <input type="text" class="form-control" id="name" name="name" 
                                        value="{{ connection.name if connection else '' }}" required>
                             </div>
@@ -27,45 +27,45 @@
                             <div class="mb-3">
                                 <label for="auto" class="form-label">Auto</label>
                                 <select class="form-select" id="auto" name="auto">
-                                    <option value="start" {% if connection and connection.config.auto == 'start' %}selected{% endif %}>start</option>
-                                    <option value="add" {% if connection and connection.config.auto == 'add' %}selected{% endif %}>add</option>
+                                    <option value="start" selected>start</option>
+                                    <option value="add">add</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
-                    <h5 class="mt-4">Configuration Left</h5>
+                    <h5 class="mt-4">Public IPs</h5>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="left" class="form-label">Left</label>
+                                <label for="left" class="form-label">Local Public IP</label>
                                 <input type="text" class="form-control" id="left" name="left" 
-                                       value="{{ connection.config.local_addrs[0] if connection and connection.config.local_addrs else '%any' }}">
+                                       value="{{ connection.config.local_addrs.0 if connection and connection.config.local_addrs else '' }}">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="leftsubnet" class="form-label">Left Subnet</label>
-                                <input type="text" class="form-control" id="leftsubnet" name="leftsubnet" 
-                                       value="{{ connection.config.children[0].local_ts[0] if connection and connection.config.children and connection.config.children[0].local_ts else '0.0.0.0/0' }}">
+                                <label for="right" class="form-label">Remote Public IP</label>
+                                <input type="text" class="form-control" id="right" name="right" 
+                                       value="{{ connection.config.remote_addrs.0 if connection and connection.config.remote_addrs else '' }}">
                             </div>
                         </div>
                     </div>
 
-                    <h5 class="mt-4">Configuration Right</h5>
+                    <h5 class="mt-4">Private IPs</h5>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="right" class="form-label">Right</label>
-                                <input type="text" class="form-control" id="right" name="right" 
-                                       value="{{ connection.config.remote_addrs[0] if connection and connection.config.remote_addrs else '%any' }}">
+                                <label for="leftsubnet" class="form-label">Local Private IP</label>
+                                <input type="text" class="form-control" id="leftsubnet" name="leftsubnet" 
+                                       value="{% if connection and connection.config.children and connection.name in connection.config.children %}{{ connection.config.children[connection.name]['local-ts'].0 if connection.config.children[connection.name]['local-ts'] else '' }}{% endif %}">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="rightsubnet" class="form-label">Right Subnet</label>
+                                <label for="rightsubnet" class="form-label">Remote Private IP</label>
                                 <input type="text" class="form-control" id="rightsubnet" name="rightsubnet" 
-                                       value="{{ connection.config.children[0].remote_ts[0] if connection and connection.config.children and connection.config.children[0].remote_ts else '0.0.0.0/0' }}">
+                                       value="{% if connection and connection.config.children and connection.name in connection.config.children %}{{ connection.config.children[connection.name]['remote-ts'].0 if connection.config.children[connection.name]['remote-ts'] else '' }}{% endif %}">
                             </div>
                         </div>
                     </div>
@@ -85,14 +85,14 @@
                             <div class="mb-3">
                                 <label for="ike" class="form-label">IKE Proposals</label>
                                 <input type="text" class="form-control" id="ike" name="ike" 
-                                       value="{{ connection.config.proposals[0] if connection and connection.config.proposals else 'aes256-sha256-modp2048' }}">
+                                       value="{{ connection.config.proposals.0 if connection and connection.config.proposals else 'aes256-sha256-modp2048' }}">
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="esp" class="form-label">ESP Proposals</label>
                                 <input type="text" class="form-control" id="esp" name="esp" 
-                                       value="{{ connection.config.children[0].esp_proposals[0] if connection and connection.config.children and connection.config.children[0].esp_proposals else 'aes256-sha256' }}">
+                                       value="aes256-sha256">
                             </div>
                         </div>
                     </div>
