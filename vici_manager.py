@@ -70,14 +70,39 @@ class ViciManager:
             
             # Marquer toutes comme non établies d'abord
             for conn in connections:
-                status[conn['name']] = {'state': 'non établie', 'bytes_in': 0, 'bytes_out': 0}
+                status[conn['name']] = {
+                    'state': 'non établie', 
+                    'bytes_in': 0, 
+                    'bytes_out': 0,
+                    'established_time': 0,
+                    'packets_in': 0,
+                    'packets_out': 0
+                }
             
             # Mettre à jour avec les SAs actives
             for sa in sas:
-                if sa['name'] in status:
-                    status[sa['name']]['state'] = 'established'
-                else:
-                    status[sa['name']] = {'state': 'established', 'bytes_in': 0, 'bytes_out': 0}
+                conn_name = sa['name']
+                if conn_name in status:
+                    status[conn_name]['state'] = 'established'
+                    status[conn_name]['established_time'] = int(sa['config'].get('established', 0))
+                    
+                    # Somme des bytes/packets de tous les child-sas
+                    total_bytes_in = 0
+                    total_bytes_out = 0
+                    total_packets_in = 0
+                    total_packets_out = 0
+                    
+                    if 'child-sas' in sa['config']:
+                        for child_sa in sa['config']['child-sas'].values():
+                            total_bytes_in += int(child_sa.get('bytes-in', 0))
+                            total_bytes_out += int(child_sa.get('bytes-out', 0))
+                            total_packets_in += int(child_sa.get('packets-in', 0))
+                            total_packets_out += int(child_sa.get('packets-out', 0))
+                    
+                    status[conn_name]['bytes_in'] = total_bytes_in
+                    status[conn_name]['bytes_out'] = total_bytes_out
+                    status[conn_name]['packets_in'] = total_packets_in
+                    status[conn_name]['packets_out'] = total_packets_out
                     
         except Exception as e:
             print(f"Erreur statut connexions: {e}")
@@ -171,7 +196,7 @@ class ViciManager:
                 'local_addrs': [config.get('left', '%any')],
                 'remote_addrs': [config.get('right', '%any')],
                 'version': '1' if config.get('keyexchange') == 'ikev1' else '2',
-                'proposals': [config.get('ike', 'aes256-sha256-modp2048')],
+                'proposals': [config.get('ike', 'aes256-sha256-modp2048,aes128-sha256-modp2048')],
                 'local': {
                     'auth': 'psk'
                 },
@@ -179,10 +204,10 @@ class ViciManager:
                     'auth': 'psk'
                 },
                 'children': {
-                    f"{config['name']}-child": {
+                    config['name']: {
                         'local_ts': [config.get('leftsubnet', '0.0.0.0/0')],
                         'remote_ts': [config.get('rightsubnet', '0.0.0.0/0')],
-                        'esp_proposals': [config.get('esp', 'aes256-sha256')],
+                        'esp_proposals': [config.get('esp', 'aes256-sha256,aes128-sha256')],
                         'start_action': 'trap' if config.get('auto') == 'start' else 'none'
                     }
                 }

@@ -29,21 +29,22 @@
                                     <div class="connection-details small">
                                         <div><i class="fas fa-laptop"></i> <strong>Public:</strong> {{ connection_info.config.local_addrs.0 if connection_info and connection_info.config.local_addrs else 'N/A' }}</div>
                                         <div><i class="fas fa-server"></i> <strong>Public:</strong> {{ connection_info.config.remote_addrs.0 if connection_info and connection_info.config.remote_addrs else 'N/A' }}</div>
-                                        {% if connection_info and connection_info.config.children and connection_info.config.children[conn_name] %}
+                                        {% if connection_info and connection_info.config.children and conn_name in connection_info.config.children %}
                                             <div><i class="fas fa-network-wired"></i> <strong>Privé Local:</strong> {{ connection_info.config.children[conn_name]['local-ts'].0 if connection_info.config.children[conn_name]['local-ts'] else 'N/A' }}</div>
                                             <div><i class="fas fa-globe"></i> <strong>Privé Remote:</strong> {{ connection_info.config.children[conn_name]['remote-ts'].0 if connection_info.config.children[conn_name]['remote-ts'] else 'N/A' }}</div>
                                         {% endif %}
-                                        {% if conn_info.established_time and conn_info.established_time > 0 %}
-                                            <div><i class="fas fa-clock"></i> <strong>Time:</strong> {{ conn_info.established_time }}s</div>
+                                        {% if conn_info.established_time > 0 %}
+                                            <div><i class="fas fa-clock"></i> <strong>Durée:</strong> {{ (conn_info.established_time / 3600) | round(1) }}h</div>
                                         {% endif %}
                                         {% if conn_info.bytes_in > 0 or conn_info.bytes_out > 0 %}
-                                            <div><i class="fas fa-chart-bar"></i> <strong>Data:</strong> ↓{{ conn_info.bytes_in }} / ↑{{ conn_info.bytes_out }}</div>
+                                            <div><i class="fas fa-chart-bar"></i> <strong>Data:</strong> ↓{{ (conn_info.bytes_in / 1048576) | round(2) }}MB / ↑{{ (conn_info.bytes_out / 1048576) | round(2) }}MB</div>
+                                            <div><i class="fas fa-signal"></i> <strong>Packets:</strong> ↓{{ conn_info.packets_in }} / ↑{{ conn_info.packets_out }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
                                 <div class="col-md-4 text-end">
-                                    <span class="badge bg-info mb-2">
-                                        DEBUG: {{ conn_info | tojson }}
+                                    <span class="badge {% if conn_info.state == 'established' %}bg-success{% else %}bg-warning{% endif %} mb-2">
+                                        <i class="fas fa-{% if conn_info.state == 'established' %}check{% else %}times{% endif %}"></i> {{ conn_info.state }}
                                     </span>
                                     <div class="mt-2">
                                         {% if conn_info.state == 'established' %}
@@ -85,9 +86,12 @@
             <div class="card-body">
                 {% set total_bytes_in = status.values() | sum(attribute="bytes_in") %}
                 {% set total_bytes_out = status.values() | sum(attribute="bytes_out") %}
-                <p><i class="fas fa-download text-primary"></i> <strong>Bytes In:</strong> {{ total_bytes_in }}</p>
-                <p><i class="fas fa-upload text-success"></i> <strong>Bytes Out:</strong> {{ total_bytes_out }}</p>
-                <p><i class="fas fa-exchange-alt text-info"></i> <strong>Total Data:</strong> {{ total_bytes_in + total_bytes_out }}</p>
+                {% set total_packets_in = status.values() | sum(attribute="packets_in") %}
+                {% set total_packets_out = status.values() | sum(attribute="packets_out") %}
+                <p><i class="fas fa-download text-primary"></i> <strong>Bytes In:</strong> {{ (total_bytes_in / 1048576) | round(2) }}MB</p>
+                <p><i class="fas fa-upload text-success"></i> <strong>Bytes Out:</strong> {{ (total_bytes_out / 1048576) | round(2) }}MB</p>
+                <p><i class="fas fa-signal text-info"></i> <strong>Packets In:</strong> {{ total_packets_in }}</p>
+                <p><i class="fas fa-project-diagram text-warning"></i> <strong>Packets Out:</strong> {{ total_packets_out }}</p>
             </div>
         </div>
     </div>
