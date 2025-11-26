@@ -1,8 +1,7 @@
 import os
-from dataclasses import dataclass
 
-@dataclass
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'votre-cle-secrete-tres-secure'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'strongswan-manager-secret-key-2024'
     VICI_SOCKET = '/var/run/charon.vici'
     SESSION_TIMEOUT = 1800
+    PAM_SERVICE = 'system-auth'

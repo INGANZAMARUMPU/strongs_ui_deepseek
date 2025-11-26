@@ -3,25 +3,42 @@ from typing import List, Dict, Optional
 
 class ViciManager:
     def __init__(self):
-        self.session = vici.Session()
-    
+        try:
+            self.session = vici.Session()
+        except Exception as e:
+            raise Exception(f"Impossible de se connecter au socket Vici: {e}")
+
+    def _decode_value(self, value):
+        """Décode les valeurs bytes en string"""
+        if isinstance(value, bytes):
+            return value.decode('utf-8')
+        elif isinstance(value, dict):
+            return {self._decode_value(k): self._decode_value(v) for k, v in value.items()}
+        elif isinstance(value, list):
+            return [self._decode_value(item) for item in value]
+        else:
+            return value
+
     def get_connections(self) -> List[Dict]:
-        """Récupère la liste des connexions configurées"""
+        """Récupère toutes les connexions configurées"""
         try:
             connections = []
             response = self.session.list_conns()
             
             for conn_name, conn_config in response.items():
+                conn_name_decoded = self._decode_value(conn_name)
+                conn_config_decoded = self._decode_value(conn_config)
+                
                 connections.append({
-                    'name': conn_name.decode() if isinstance(conn_name, bytes) else conn_name,
-                    'config': self._decode_config(conn_config)
+                    'name': conn_name_decoded,
+                    'config': conn_config_decoded
                 })
             
             return connections
         except Exception as e:
-            print(f"Erreur lors de la récupération des connexions: {e}")
+            print(f"Erreur list_conns: {e}")
             return []
-    
+
     def get_sas(self) -> List[Dict]:
         """Récupère les Security Associations actives"""
         try:
@@ -29,132 +46,124 @@ class ViciManager:
             response = self.session.list_sas()
             
             for sa_name, sa_config in response.items():
+                sa_name_decoded = self._decode_value(sa_name)
+                sa_config_decoded = self._decode_value(sa_config)
+                
                 sas.append({
-                    'name': sa_name.decode() if isinstance(sa_name, bytes) else sa_name,
-                    'config': self._decode_config(sa_config)
+                    'name': sa_name_decoded,
+                    'config': sa_config_decoded
                 })
             
             return sas
         except Exception as e:
-            print(f"Erreur lors de la récupération des SAs: {e}")
+            print(f"Erreur list_sas: {e}")
             return []
-    
-    def get_connection_status(self) -> Dict:
-        """Récupère le statut des connexions"""
+
+    def get_connection_status(self) -> Dict[str, str]:
+        """Récupère le statut de chaque connexion"""
         status = {}
-        try:
-            sas = self.get_sas()
-            connections = self.get_connections()
-            
-            # Marque toutes les connexions comme non établies
-            for conn in connections:
-                status[conn['name']] = 'non établie'
-            
-            # Met à jour le statut pour les SAs actives
-            for sa in sas:
-                conn_name = sa['name']
-                state = sa['config'].get('state', 'inconnu')
-                status[conn_name] = state
-            
-            return status
-        except Exception as e:
-            print(f"Erreur lors de la récupération du statut: {e}")
-            return {}
-    
-    def _decode_config(self, config):
-        """Décode la configuration bytes en strings"""
-        decoded = {}
-        for key, value in config.items():
-            key_str = key.decode() if isinstance(key, bytes) else key
-            
-            if isinstance(value, bytes):
-                decoded[key_str] = value.decode()
-            elif isinstance(value, dict):
-                decoded[key_str] = self._decode_config(value)
-            elif isinstance(value, list):
-                decoded[key_str] = [item.decode() if isinstance(item, bytes) else item for item in value]
-            else:
-                decoded[key_str] = value
         
-        return decoded
-    
+        # Récupère toutes les connexions configurées
+        connections = self.get_connections()
+        for conn in connections:
+            status[conn['name']] = 'non établie'
+        
+        # Met à jour avec les SAs actives
+        sas = self.get_sas()
+        for sa in sas:
+            state = sa['config'].get('state', 'unknown')
+            status[sa['name']] = state
+        
+        return status
+
     def load_connection(self, name: str) -> Optional[Dict]:
         """Charge une connexion spécifique"""
-        try:
-            connections = self.get_connections()
-            for conn in connections:
-                if conn['name'] == name:
-                    return conn
-            return None
-        except Exception as e:
-            print(f"Erreur lors du chargement de la connexion: {e}")
-            return None
-    
+        connections = self.get_connections()
+        for conn in connections:
+            if conn['name'] == name:
+                return conn
+        return None
+
     def create_connection(self, config: Dict) -> bool:
-        """Crée une nouvelle connexion IPsec"""
+        """Crée une nouvelle connexion"""
         try:
-            # Formatte la configuration pour Vici
-            vici_config = self._format_connection_config(config)
-            
-            # Charge la connexion
+            vici_config = self._format_vici_config(config)
             self.session.load_conn(vici_config)
             
-            # Initie la connexion si auto=start
+            # Si auto=start, on initie la connexion
             if config.get('auto') == 'start':
-                self.session.initiate({'ike': config['name']})
+                self.initiate_connection(config['name'])
             
             return True
-            
         except Exception as e:
-            print(f"Erreur lors de la création de la connexion: {e}")
+            print(f"Erreur création connexion: {e}")
             return False
-    
+
     def update_connection(self, old_name: str, new_config: Dict) -> bool:
         """Met à jour une connexion existante"""
         try:
-            # Supprime l'ancienne connexion
-            self.unload_connection(old_name)
+            # Unload l'ancienne connexion
+            self.session.unload_conn({'name': old_name})
             
-            # Crée la nouvelle connexion
+            # Crée la nouvelle
             return self.create_connection(new_config)
-            
         except Exception as e:
-            print(f"Erreur lors de la mise à jour de la connexion: {e}")
+            print(f"Erreur mise à jour connexion: {e}")
             return False
-    
+
     def unload_connection(self, name: str) -> bool:
-        """Décharge une connexion"""
+        """Supprime une connexion"""
         try:
             self.session.unload_conn({'name': name})
             return True
         except Exception as e:
-            print(f"Erreur lors du déchargement de la connexion: {e}")
+            print(f"Erreur suppression connexion: {e}")
             return False
-    
+
+    def initiate_connection(self, name: str) -> bool:
+        """Démarre une connexion"""
+        try:
+            response = self.session.initiate({'ike': name})
+            return True
+        except Exception as e:
+            print(f"Erreur initiation connexion: {e}")
+            return False
+
     def terminate_connection(self, name: str) -> bool:
-        """Termine une connexion active"""
+        """Arrête une connexion"""
         try:
             self.session.terminate({'ike': name})
             return True
         except Exception as e:
-            print(f"Erreur lors de la terminaison de la connexion: {e}")
+            print(f"Erreur terminaison connexion: {e}")
             return False
-    
-    def initiate_connection(self, name: str) -> bool:
-        """Initie une connexion"""
+
+    def get_stats(self) -> Dict:
+        """Récupère les statistiques"""
         try:
-            response = self.session.initiate({'ike': name})
-            return response.get(b'success') is not None
+            stats = self.session.stats()
+            return self._decode_value(stats)
         except Exception as e:
-            print(f"Erreur lors de l'initiation de la connexion: {e}")
+            print(f"Erreur stats: {e}")
+            return {}
+
+    def reload_secrets(self) -> bool:
+        """Recharge les secrets PSK"""
+        try:
+            self.session.load_shared({})
+            return True
+        except Exception as e:
+            print(f"Erreur reload secrets: {e}")
             return False
-    
-    def _format_connection_config(self, config: Dict) -> Dict:
-        """Formate la configuration pour l'API Vici"""
+
+    def _format_vici_config(self, config: Dict) -> Dict:
+        """Formate la configuration pour Vici"""
         vici_config = {
             config['name']: {
                 'local_addrs': [config.get('left', '%any')],
                 'remote_addrs': [config.get('right', '%any')],
+                'version': '1' if config.get('keyexchange') == 'ikev1' else '2',
+                'proposals': [config.get('ike', 'aes256-sha256-modp2048')],
                 'local': {
                     'auth': 'psk'
                 },
@@ -171,33 +180,4 @@ class ViciManager:
                 }
             }
         }
-        
-        # Ajoute les propositions IKE si spécifiées
-        if 'ike' in config:
-            vici_config[config['name']]['proposals'] = [config['ike']]
-        
-        # Ajoute keyexchange si spécifié
-        if config.get('keyexchange') == 'ikev1':
-            vici_config[config['name']]['version'] = '1'
-        else:
-            vici_config[config['name']]['version'] = '2'
-        
         return vici_config
-    
-    def get_stats(self) -> Dict:
-        """Récupère les statistiques"""
-        try:
-            stats = self.session.stats()
-            return self._decode_config(stats)
-        except Exception as e:
-            print(f"Erreur lors de la récupération des statistiques: {e}")
-            return {}
-    
-    def reload_secrets(self) -> bool:
-        """Recharge les secrets"""
-        try:
-            self.session.load_shared({})
-            return True
-        except Exception as e:
-            print(f"Erreur lors du rechargement des secrets: {e}")
-            return False

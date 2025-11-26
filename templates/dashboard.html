@@ -1,20 +1,98 @@
-<!-- Ajouter cette section après le statut des connexions -->
-<div class="row mt-4">
-    <div class="col-md-6">
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord - StrongSwan Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-tachometer-alt"></i> Tableau de bord</h1>
+    <div>
+        <a href="{{ url_for('connections') }}" class="btn btn-primary me-2">
+            <i class="fas fa-list"></i> Gérer les connexions
+        </a>
+        <a href="{{ url_for('reload_secrets') }}" class="btn btn-warning">
+            <i class="fas fa-sync"></i> Recharger les secrets
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-plug"></i> Statut des connexions
+                </h5>
+                <button id="refresh-status" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-redo"></i> Actualiser
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="status-container">
+                    {% for conn_name, conn_status in status.items() %}
+                        <div class="connection-status mb-3 p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ conn_name }}</h6>
+                                    <small class="text-muted">
+                                        {{ connections | selectattr("name", "equalto", conn_name) | first | attr("config") | default({}) }}
+                                    </small>
+                                </div>
+                                <div>
+                                    <span class="badge {% if 'established' in conn_status %}bg-success{% else %}bg-warning{% endif %}">
+                                        {{ conn_status }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <a href="{{ url_for('start_connection', name=conn_name) }}" 
+                                   class="btn btn-sm btn-success">
+                                    <i class="fas fa-play"></i> Démarrer
+                                </a>
+                                <a href="{{ url_for('stop_connection', name=conn_name) }}" 
+                                   class="btn btn-sm btn-danger">
+                                    <i class="fas fa-stop"></i> Arrêter
+                                </a>
+                                <a href="{{ url_for('edit_connection', name=conn_name) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i> Modifier
+                                </a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-4">
+                            <i class="fas fa-info-circle"></i> Aucune connexion configurée
+                        </p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">Statistiques</h5>
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar"></i> Statistiques
+                </h5>
             </div>
             <div class="card-body">
                 {% if stats %}
-                    <div class="row">
-                        <div class="col-6">
-                            <strong>Bytes In:</strong> {{ stats.get('bytes_in', 0) }}<br>
-                            <strong>Bytes Out:</strong> {{ stats.get('bytes_out', 0) }}<br>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <strong>Bytes In:</strong>
+                            <span>{{ stats.bytes_in | default(0) }}</span>
                         </div>
-                        <div class="col-6">
-                            <strong>Packets In:</strong> {{ stats.get('packets_in', 0) }}<br>
-                            <strong>Packets Out:</strong> {{ stats.get('packets_out', 0) }}<br>
+                        <div class="stat-item">
+                            <strong>Bytes Out:</strong>
+                            <span>{{ stats.bytes_out | default(0) }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <strong>Packets In:</strong>
+                            <span>{{ stats.packets_in | default(0) }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <strong>Packets Out:</strong>
+                            <span>{{ stats.packets_out | default(0) }}</span>
                         </div>
                     </div>
                 {% else %}
@@ -22,17 +100,19 @@
                 {% endif %}
             </div>
         </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card">
+        
+        <div class="card mt-4">
             <div class="card-header">
-                <h5 class="card-title mb-0">Actions système</h5>
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Informations
+                </h5>
             </div>
             <div class="card-body">
-                <a href="{{ url_for('reload_secrets') }}" class="btn btn-warning">
-                    Recharger les secrets
-                </a>
+                <p><strong>Utilisateur:</strong> {{ session.username }}</p>
+                <p><strong>Connexions:</strong> {{ connections | length }} configurées</p>
+                <p><strong>Actives:</strong> {{ status.values() | select("equalto", "established") | list | length }}</p>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
