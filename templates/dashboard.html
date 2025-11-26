@@ -28,11 +28,11 @@
                                     <h6 class="mb-2">{{ conn_name }}</h6>
                                     {% if connection_info %}
                                         <div class="connection-details small text-muted">
-                                            <div><strong>Local:</strong> {{ connection_info.config.local_addrs[0] | default('N/A') }}</div>
-                                            <div><strong>Remote:</strong> {{ connection_info.config.remote_addrs[0] | default('N/A') }}</div>
-                                            {% if connection_info.config.children %}
-                                                <div><strong>Local TS:</strong> {{ connection_info.config.children[0].local_ts[0] | default('N/A') }}</div>
-                                                <div><strong>Remote TS:</strong> {{ connection_info.config.children[0].remote_ts[0] | default('N/A') }}</div>
+                                            <div><strong>Local:</strong> {{ connection_info.config.local_addrs.0 if connection_info.config.local_addrs else 'N/A' }}</div>
+                                            <div><strong>Remote:</strong> {{ connection_info.config.remote_addrs.0 if connection_info.config.remote_addrs else 'N/A' }}</div>
+                                            {% if connection_info.config.children and connection_info.config.children.0 %}
+                                                <div><strong>Local TS:</strong> {{ connection_info.config.children.0.local_ts.0 if connection_info.config.children.0.local_ts else 'N/A' }}</div>
+                                                <div><strong>Remote TS:</strong> {{ connection_info.config.children.0.remote_ts.0 if connection_info.config.children.0.remote_ts else 'N/A' }}</div>
                                             {% endif %}
                                         </div>
                                     {% endif %}
