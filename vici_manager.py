@@ -66,26 +66,18 @@ class ViciManager:
         
         try:
             sas = self.get_sas()
-            
-            # Pour chaque SA active, on a les infos détaillées
-            for sa in sas:
-                status[sa['name']] = {
-                    'state': sa['config'].get('state', 'unknown'),
-                    'bytes_in': sa['config'].get('bytes_in', 0),
-                    'bytes_out': sa['config'].get('bytes_out', 0),
-                    'established_time': sa['config'].get('established_time', 0)
-                }
-            
-            # Pour les connexions configurées mais non actives
             connections = self.get_connections()
+            
+            # Marquer toutes comme non établies d'abord
             for conn in connections:
-                if conn['name'] not in status:
-                    status[conn['name']] = {
-                        'state': 'non établie',
-                        'bytes_in': 0,
-                        'bytes_out': 0,
-                        'established_time': 0
-                    }
+                status[conn['name']] = {'state': 'non établie', 'bytes_in': 0, 'bytes_out': 0}
+            
+            # Mettre à jour avec les SAs actives
+            for sa in sas:
+                if sa['name'] in status:
+                    status[sa['name']]['state'] = 'established'
+                else:
+                    status[sa['name']] = {'state': 'established', 'bytes_in': 0, 'bytes_out': 0}
                     
         except Exception as e:
             print(f"Erreur statut connexions: {e}")
