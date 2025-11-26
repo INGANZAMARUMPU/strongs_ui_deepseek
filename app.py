@@ -14,11 +14,31 @@ except Exception as e:
     print(f"ERREUR: {e}")
     vici_manager = None
 
+import grp
+import os
+
 def authenticate_pam(username, password):
-    """Authentification via PAM"""
+    """Authentification via PAM avec vérification du groupe"""
     try:
         p = pam.pam()
-        return p.authenticate(username, password, service=Config.PAM_SERVICE)
+        if not p.authenticate(username, password):
+            return False
+        
+        # Vérifie que l'utilisateur est dans le groupe ipsec
+        try:
+            user_groups = [g.gr_name for g in grp.getgrall() if username in g.gr_mem]
+            user_groups.append(grp.getgrgid(os.getgid()).gr_name)  # groupe principal
+            
+            if 'ipsec' in user_groups:
+                return True
+            else:
+                print(f"Utilisateur {username} n'est pas dans ipsec")
+                return False
+                
+        except Exception as e:
+            print(f"Erreur vérification groupe: {e}")
+            return False
+            
     except Exception as e:
         print(f"Erreur PAM: {e}")
         return False
