@@ -147,11 +147,23 @@ class ViciManager:
     def unload_connection(self, name: str) -> bool:
         """Supprime une connexion"""
         try:
+            # Essaie d'abord de terminer la connexion si active
+            try:
+                self.session.terminate({'ike': name})
+            except:
+                pass
+            
+            # Puis unload
             self.session.unload_conn({'name': name})
             return True
         except Exception as e:
             print(f"Erreur suppression connexion: {e}")
-            return False
+            # Si ça échoue, essaie de recharger la config
+            try:
+                self.session.reload({'reload-settings': True})
+                return True
+            except:
+                return False
 
     def initiate_connection(self, name: str) -> bool:
         """Démarre une connexion"""
@@ -196,7 +208,6 @@ class ViciManager:
                 'local_addrs': [config.get('left', '%any')],
                 'remote_addrs': [config.get('right', '%any')],
                 'version': '1' if config.get('keyexchange') == 'ikev1' else '2',
-                'proposals': [config.get('ike', 'aes256-sha256-modp2048,aes128-sha256-modp2048')],
                 'local': {
                     'auth': 'psk'
                 },
@@ -207,10 +218,17 @@ class ViciManager:
                     config['name']: {
                         'local_ts': [config.get('leftsubnet', '0.0.0.0/0')],
                         'remote_ts': [config.get('rightsubnet', '0.0.0.0/0')],
-                        'esp_proposals': [config.get('esp', 'aes256-sha256,aes128-sha256')],
                         'start_action': 'trap' if config.get('auto') == 'start' else 'none'
                     }
                 }
             }
         }
+        
+        # Ajoute proposals seulement si spécifié et valide
+        if config.get('ike'):
+            vici_config[config['name']]['proposals'] = [config['ike']]
+        
+        if config.get('esp'):
+            vici_config[config['name']]['children'][config['name']]['esp_proposals'] = [config['esp']]
+        
         return vici_config
