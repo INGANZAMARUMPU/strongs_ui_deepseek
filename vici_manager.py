@@ -8,31 +8,32 @@ class ViciManager:
         except Exception as e:
             raise Exception(f"Impossible de se connecter au socket Vici: {e}")
 
-    def _decode_value(self, value):
-        """Décode les valeurs bytes en string"""
-        if isinstance(value, bytes):
-            return value.decode('utf-8')
-        elif isinstance(value, dict):
-            return {self._decode_value(k): self._decode_value(v) for k, v in value.items()}
-        elif isinstance(value, list):
-            return [self._decode_value(item) for item in value]
+    def _parse_vici_response(self, response):
+        """Parse la réponse Vici en dictionnaire"""
+        if hasattr(response, 'items'):
+            return {k: self._parse_vici_response(v) for k, v in response.items()}
+        elif isinstance(response, (list, tuple)):
+            return [self._parse_vici_response(item) for item in response]
+        elif isinstance(response, bytes):
+            return response.decode('utf-8')
         else:
-            return value
+            return response
 
     def get_connections(self) -> List[Dict]:
         """Récupère toutes les connexions configurées"""
         try:
             connections = []
-            response = self.session.list_conns()
+            # Convertir le générateur en liste d'abord
+            response = list(self.session.list_conns())
             
-            for conn_name, conn_config in response.items():
-                conn_name_decoded = self._decode_value(conn_name)
-                conn_config_decoded = self._decode_value(conn_config)
-                
-                connections.append({
-                    'name': conn_name_decoded,
-                    'config': conn_config_decoded
-                })
+            for conn in response:
+                parsed_conn = self._parse_vici_response(conn)
+                if isinstance(parsed_conn, dict):
+                    for conn_name, conn_config in parsed_conn.items():
+                        connections.append({
+                            'name': conn_name,
+                            'config': conn_config
+                        })
             
             return connections
         except Exception as e:
@@ -43,16 +44,16 @@ class ViciManager:
         """Récupère les Security Associations actives"""
         try:
             sas = []
-            response = self.session.list_sas()
+            response = list(self.session.list_sas())
             
-            for sa_name, sa_config in response.items():
-                sa_name_decoded = self._decode_value(sa_name)
-                sa_config_decoded = self._decode_value(sa_config)
-                
-                sas.append({
-                    'name': sa_name_decoded,
-                    'config': sa_config_decoded
-                })
+            for sa in response:
+                parsed_sa = self._parse_vici_response(sa)
+                if isinstance(parsed_sa, dict):
+                    for sa_name, sa_config in parsed_sa.items():
+                        sas.append({
+                            'name': sa_name,
+                            'config': sa_config
+                        })
             
             return sas
         except Exception as e:
@@ -63,16 +64,20 @@ class ViciManager:
         """Récupère le statut de chaque connexion"""
         status = {}
         
-        # Récupère toutes les connexions configurées
-        connections = self.get_connections()
-        for conn in connections:
-            status[conn['name']] = 'non établie'
-        
-        # Met à jour avec les SAs actives
-        sas = self.get_sas()
-        for sa in sas:
-            state = sa['config'].get('state', 'unknown')
-            status[sa['name']] = state
+        try:
+            # Récupère toutes les connexions configurées
+            connections = self.get_connections()
+            for conn in connections:
+                status[conn['name']] = 'non établie'
+            
+            # Met à jour avec les SAs actives
+            sas = self.get_sas()
+            for sa in sas:
+                state = sa['config'].get('state', 'unknown')
+                status[sa['name']] = state
+            
+        except Exception as e:
+            print(f"Erreur statut connexions: {e}")
         
         return status
 
@@ -103,7 +108,7 @@ class ViciManager:
         """Met à jour une connexion existante"""
         try:
             # Unload l'ancienne connexion
-            self.session.unload_conn({'name': old_name})
+            self.unload_connection(old_name)
             
             # Crée la nouvelle
             return self.create_connection(new_config)
@@ -123,7 +128,7 @@ class ViciManager:
     def initiate_connection(self, name: str) -> bool:
         """Démarre une connexion"""
         try:
-            response = self.session.initiate({'ike': name})
+            self.session.initiate({'ike': name})
             return True
         except Exception as e:
             print(f"Erreur initiation connexion: {e}")
@@ -142,7 +147,7 @@ class ViciManager:
         """Récupère les statistiques"""
         try:
             stats = self.session.stats()
-            return self._decode_value(stats)
+            return self._parse_vici_response(stats)
         except Exception as e:
             print(f"Erreur stats: {e}")
             return {}
