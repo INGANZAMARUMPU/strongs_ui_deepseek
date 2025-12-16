@@ -19,7 +19,9 @@ Lightweight manager for StrongSwan IPsec installations. Provides a minimal, exte
 - Optional: systemd service for running the manager with elevated privileges
 
 
-## /etc/systemd/system/ipsec_ui.service   
+## systemd
+```bash
+# /etc/systemd/system/ipsec_ui.service
 [Unit]
 Description=StrongSwan UI
 After=network.target
@@ -33,3 +35,4 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
+```
