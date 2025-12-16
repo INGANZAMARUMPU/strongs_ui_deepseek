@@ -1,3 +1,4 @@
+import subprocess
 import vici
 from typing import List, Dict, Optional
 
@@ -167,11 +168,30 @@ class ViciManager:
 
     def initiate_connection(self, name: str) -> bool:
         """Démarre une connexion"""
+        # try:
+        #     self.session.initiate({'ike': name})
+        #     return True
+        # except Exception as e:
+        #     print(f"Erreur initiation connexion: {e}")
+        #     return False
+        command_string = f"sudo ipsec down {name}; sudo ipsec up {name} ;"
         try:
-            self.session.initiate({'ike': name})
+            result = subprocess.run(
+                command_string,
+                shell=True,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            print(result.stdout)
             return True
+        except subprocess.CalledProcessError as e:
+            print(f"Command failed with return code {e.returncode}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+            return False
         except Exception as e:
-            print(f"Erreur initiation connexion: {e}")
+            print(f"An error occurred: {e}")
             return False
 
     def terminate_connection(self, name: str) -> bool:
