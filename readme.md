@@ -17,3 +17,19 @@ Lightweight manager for StrongSwan IPsec installations. Provides a minimal, exte
     - VICI socket (recommended) OR
     - permission to modify /etc/ipsec.conf and run ipsec commands (requires root)
 - Optional: systemd service for running the manager with elevated privileges
+
+
+## /etc/systemd/system/ipsec_ui.service   
+[Unit]
+Description=StrongSwan UI
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/home/ubuntu/strongs_ui_deepseek
+ExecStart=/home/ubuntu/venv/bin/python app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
